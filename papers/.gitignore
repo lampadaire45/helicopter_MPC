@@ -1,0 +1,12 @@
+# Ignore everything
+*
+
+# But not these files...
+!.gitignore
+!Modeling_and_Control_of_a_Simulated_Flight_of_a_Mi.pdf
+!Model_Predictive_Control_to_Autonomous_Helicopter_Flight.pdf
+!MPC_aerospace.pdf
+# etc...
+
+# ...even if they are in subdirectories
+!*/
