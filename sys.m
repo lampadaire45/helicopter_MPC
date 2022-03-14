@@ -22,6 +22,10 @@ p = states(10);
 q = states(11);
 r = states(12);
 
+if isa(input,'function_handle')
+    input = input(t);
+end
+
 T_MR = input(1);
 T_TR = input(2);
 beta_1s = input(3);
