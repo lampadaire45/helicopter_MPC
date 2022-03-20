@@ -8,7 +8,7 @@ l_m = 0; % Distance center of mass to main rotor x-axis (m)
 h_m = 0; % Distance center of mass to main rotor z-axis (m)
 h_t = 0; % Distance center of mass to tail rotor z-axis (m)
 l_t = 0.6; % Distance center of mass to tail rotor x-axis (m)
-I = [0.24 0.58 0.6]; % Inertia matrix (kg/m^2)
+I = [0.24 0.58 1.6]; % Inertia matrix (kg/m^2)
 %omega = 150; % Rotor angular velocity (rad/s)
 
 %rho = 1.225; % Air density (kg/m^3)
