@@ -3,134 +3,99 @@ clear all
 close all
 clc
 
-%% Simulation
+set(0, 'DefaultLineLineWidth', 1.0);
+%% Simulation Conditions
 % x = [x y z u  v  w  phi  theta  psi  p  q  r]
 % u = [T_MR  T_TR  beta_1s  beta_1c]
 
 t_span = [0 10];
-
 x_0 = zeros(12,1);
-
-%x_0(5) = 1;
-
-u_0 = [60 -0.15 0 0];
-
+u_0 = [60 -0.15 0 0]';
 [u_0,fval] = trim(x_0,u_0);
 
 % Set step function
-u_step = @(t) ones(size(t))*u_0 +[heaviside(t-5) zeros(size(t)) zeros(size(t)) zeros(size(t))];
-f_step = @(t,x) sys(t,x,u_step);
+u_step_col = @(t,x) u_0 +[10*heaviside(t-1)-10*heaviside(t-2) 0 0 0]';
+u_step_cyc = @(t,x) u_0 +[0 0 deg2rad(1*heaviside(t-1)-1*heaviside(t-2)) 0]';
 
-[t,x] = ode45(f_step,t_span,x_0);
+%% Non-linear simulation
+f_step_col = @(t,x) sys(t,x,u_step_col);
+f_step_cyc = @(t,x) sys(t,x,u_step_cyc);
 
-%% Plot Non-linear model
+[t_nl_col,x_nl_col] = ode45(f_step_col,t_span,x_0);
+[t_nl_cyc,x_nl_cyc] = ode45(f_step_cyc,t_span,x_0);
 
+%% Plot Non-linear results
 pos_axis    = [0 10 -1e1  1e1];
 speed_axis  = [0 10 -5e0  5e0];
 rate_axis   = [0 10 -5e0  5e0];
 angle_axis  = [0 10 -1e1  1e1];
+axis = [pos_axis;speed_axis;rate_axis;angle_axis];
 
-figure
-subplot(3,2,1)
-plot(t,x(:,1))
-hold on
-plot(t,x(:,2))
-plot(t,x(:,3))
-legend('x','y','z')
-title('position')
-axis(pos_axis)
-grid on
+plot_single(t_nl_col,x_nl_col,u_step_col,'Non-linear model collective step')
+plot_single(t_nl_cyc,x_nl_cyc,u_step_cyc,'Non-linear model cyclic step')
+% Highly coupled system
 
-subplot(3,2,2)
-plot(t,x(:,4))
-hold on
-plot(t,x(:,5))
-plot(t,x(:,6))
-legend('u','v','w')
-title('speed')
-axis(speed_axis)
-grid on
+visualize_helicopter_trajectory_rotating(x_nl_col,[],0.01)
 
-subplot(3,2,3)
-plot(t,rad2deg(x(:,7)))
-hold on
-plot(t,rad2deg(x(:,8)))
-plot(t,rad2deg(x(:,9)))
-legend('theta','phi','psi')
-title('angle')
-axis(angle_axis)
-grid on
+%% Linearize system in hover
+% x = [x y z u  v  w  phi  theta  psi  p  q  r]
+% u = [T_MR  T_TR  beta_1s  beta_1c]
+x_0 = zeros(12,1);
+u_0 = [60 -0.15 0 0]';
+[u_0,fval] = trim(x_0,u_0);
 
-subplot(3,2,4)
-plot(t,rad2deg(x(:,10)))
-hold on
-plot(t,rad2deg(x(:,11)))
-plot(t,rad2deg(x(:,12)))
-legend('p','q','r')
-title('rate')
-axis(rate_axis)
-grid on
-
-subplot(3,1,3)
-plot(t,u_step(t)-u_0)
-hold on
-legend('T_mr','T_tr','\beta_1s','\beta_1c')
-title('Command')
-grid on
-
-%% Linearize system
 [A,B] = lin_sys(x_0,u_0);
 sys_lin = ss(A,B,eye(size(A)),zeros(size(B)));
-
 t_lin = [t_span(1):(t_span(2)-t_span(1))/100:t_span(2)]';
-[~,t_lin,x_lin] = lsim(sys_lin,u_step(t_lin)-u_0,t_lin);
+
+%% Simulate linear
+[~,t_lin_col,x_lin_col] = lsim(sys_lin,fu2u(u_step_col,t_lin,zeros(length(t_lin),length(x_0)))-u_0,t_lin);
+[~,t_lin_cyc,x_lin_cyc] = lsim(sys_lin,fu2u(u_step_cyc,t_lin,zeros(length(t_lin),length(x_0)))-u_0,t_lin);
 
 %% Plot linear system
+plot_single(t_lin_col,x_lin_col,u_step_col,'Linear model collective step')
+plot_single(t_lin_cyc,x_lin_cyc,u_step_cyc,'Linear model cyclic step')
 
-figure
-subplot(3,2,1)
-plot(t_lin,x_lin(:,1))
-hold on
-plot(t_lin,x_lin(:,2))
-plot(t_lin,x_lin(:,3))
-legend('x','y','z')
-title('position')
-axis(pos_axis)
-grid on
+%% Compare linear and non-linear system
+plot_compare_nl2l(t_lin_col,x_lin_col,u_step_col,t_nl_col,x_nl_col,u_step_col,'Comparison of Linear and Non-Linar System with Collective Step',axis)
+plot_compare_nl2l(t_lin_cyc,x_lin_cyc,u_step_cyc,t_nl_cyc,x_nl_cyc,u_step_cyc,'Comparison of Linear and Non-Linar System with Collective Step',axis)
 
-subplot(3,2,2)
-plot(t_lin,x_lin(:,4))
-hold on
-plot(t_lin,x_lin(:,5))
-plot(t_lin,x_lin(:,6))
-legend('u','v','w')
-title('speed')
-axis(speed_axis)
-grid on
+%% Check controlability of system
 
-subplot(3,2,3)
-plot(t_lin,rad2deg(x_lin(:,7)))
-hold on
-plot(t_lin,rad2deg(x_lin(:,8)))
-plot(t_lin,rad2deg(x_lin(:,9)))
-legend('theta','phi','psi')
-title('angle')
-axis(angle_axis)
-grid on
+if rank(ctrb(sys_lin.A,sys_lin.B)) == size(sys_lin.A,1)
+    fprintf("System is controllable")
+else
+    fprintf("System not controllable")
+end
 
-subplot(3,2,4)
-plot(t_lin,rad2deg(x_lin(:,10)))
-hold on
-plot(t_lin,rad2deg(x_lin(:,11)))
-plot(t_lin,rad2deg(x_lin(:,12)))
-legend('p','q','r')
-title('rate')
-axis(rate_axis)
-grid on
+%% Discretize system
+dt = 0.05;
 
-subplot(3,1,3)
-plot(t_lin,u_step(t_lin)-u_0)
-hold on
-legend('T_mr','T_tr','\beta_1s','\beta_1c')
-title('Command')
-grid on
+sysd = c2d(sys_lin,dt);
+
+%% LQR controller
+% x = [x y z u  v  w  phi  theta  psi  p  q  r]
+x_0 = [5 5 0 0  0  0  0    0      0    0  0  0]';
+
+% u = [T_MR  T_TR  beta_1s  beta_1c]
+u_0 = [0     0     0        0]';
+
+t_span = [0 15];
+t = [t_span(1):dt:t_span(2)]';
+
+Q = 1E3*diag([1 1 1 1 1 1 1 1 1 1 1 1]);
+R = diag([1 1 1 1]);
+
+[K,S,e] = dlqr(sysd.A,sysd.B,Q,R,[]);
+
+sysd_LQR_cl = ss(sysd.A-sysd.B*K,sysd.B,sysd.C,sysd.D,dt);
+[~,t_LQR,x_LQR] = lsim(sysd_LQR_cl,zeros(length(t),size(sysd.B,2)),t,x_0);
+
+u_LQR = zeros(length(t_LQR),size(sysd.B,2));
+for i=1:length(t_LQR)
+    u_LQR(i,:) = K*x_LQR(i,:)';
+end
+
+plot_single(t_LQR,x_LQR,u_LQR,'LQR')
+
+visualize_helicopter_trajectory_rotating(x_LQR,[],0.01)

@@ -23,7 +23,7 @@ q = states(11);
 r = states(12);
 
 if isa(input,'function_handle')
-    input = input(t);
+    input = input(t,states);
 end
 
 T_MR = input(1);
