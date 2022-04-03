@@ -1,6 +1,4 @@
 function [] = plot_single(t,x,input,figure_title,varargin)
-%UNTITLED2 Summary of this function goes here
-%   Detailed explanation goes here
 
 % Take care of u if it is a function
 u = fu2u(input,t,x);
@@ -9,71 +7,59 @@ u = fu2u(input,t,x);
 if isempty(varargin)
     pos_axis = [-inf inf -inf inf];
     speed_axis = [-inf inf -inf inf];
-    rate_axis = [-inf inf -inf inf];
     angle_axis = [-inf inf -inf inf];
+    inflow_axis = [-inf inf -inf inf];
 else
-    pos_axis = varargin(1,:);
-    speed_axis = varargin(2,:);
-    rate_axis = varargin(3,:);
-    angle_axis = varargin(4,:);
+    pos_axis = varargin{1}(1,:);
+    speed_axis = varargin{1}(2,:);
+    angle_axis = varargin{1}(3,:);
+    inflow_axis = varargin{1}(4,:);
 end
 
-% Separate x vector
-x_pos = x(:,[1:3]);
-x_speed = x(:,[4:6]);
-x_angle = rad2deg(x(:,[7:9]));
-x_rate = rad2deg(x(:,[10:12]));
-
-% Plot
 figure('name',figure_title)
+
 subplot(3,2,1)
-plot(t,x_pos)
+plot(t,x(:,1))
 hold on
-legend('x','y','z')
-%title('Position')
-xlabel('Time (s)');ylabel('Position (m)')
-axis(pos_axis)
+plot(t,-x(:,2))
+legend('x','-z')
+xlabel('Time (s)')
+ylabel('Position (m)')
 grid on
+axis(pos_axis)
 
 subplot(3,2,2)
-plot(t,x_speed)
+plot(t,x(:,3))
 hold on
-legend('u','v','w')
-%title('speed')
-xlabel('Time (s)');ylabel('Speed (m/s)')
-axis(speed_axis)
+plot(t,-x(:,4))
+legend('u','-w')
+xlabel('Time (s)')
+ylabel('Velocity (m/s)')
 grid on
+axis(speed_axis)
 
 subplot(3,2,3)
-plot(t,x_angle)
+plot(t,rad2deg(x(:,5)))
 hold on
-legend('\theta','\phi','\psi')
-xlabel('Time (s)');ylabel('Attitude (deg)')
-%title('angle')
-axis(angle_axis)
+plot(t,rad2deg(x(:,6)))
+legend('q','\theta')
+xlabel('Time (s)')
+ylabel('Rate and angle (deg/s)')
 grid on
+axis(angle_axis)
 
 subplot(3,2,4)
-plot(t,x_rate)
-hold on
-legend('p','q','r')
-xlabel('Time (s)');ylabel('Rate (deg/s)')
-%title('rate')
-axis(rate_axis)
+plot(t,x(:,7))
+legend('Inflow')
+xlabel('Time (s)')
+ylabel('Inflow')
 grid on
+axis(inflow_axis)
 
 subplot(3,1,3)
-yyaxis left
-plot(t,u(:,[1,2]))
-ylabel('Thrust command (N)')
-hold on
-yyaxis right
-plot(t,rad2deg(u(:,[3,4])))
-ylabel('Angle command (deg)')
-legend('T_{mr}','T_{tr}','\beta_{1s}','\beta_{1c}')
-xlabel('Time (s)');
-%title('Command')
+plot(t,u)
+legend('Collective','Cyclic')
+xlabel('Time (s)')
+ylabel('Command (% of maximum)')
 grid on
-
-
 end
