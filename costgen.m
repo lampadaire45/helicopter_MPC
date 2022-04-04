@@ -1,5 +1,6 @@
 function [H,h]=costgen(predmod,weight,dim)
 
-Qbar=blkdiag(kron(eye(dim.N),weight.Q),weight.beta*weight.P); 
-H=predmod.S'*Qbar*predmod.S+kron(eye(dim.N),weight.R);   
+Qbar=blkdiag(kron(eye(dim.N),weight.Q),weight.beta*weight.P);
+Rbar=kron(eye(dim.N),weight.R);
+H=predmod.S'*Qbar*predmod.S+Rbar;   
 h=predmod.S'*Qbar*predmod.T;

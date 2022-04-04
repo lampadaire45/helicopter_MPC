@@ -64,4 +64,6 @@ h = 0.1;
 sysd = c2d(sysc,h);
 
 %% Clear variables
-clearvars -except sysc sysd u_0 x_0 heli_param
+x_0_eq = x_0;
+u_0_eq = u_0;
+clearvars -except sysc sysd u_0_eq x_0_eq heli_param
