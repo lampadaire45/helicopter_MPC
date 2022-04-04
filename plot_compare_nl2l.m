@@ -22,11 +22,11 @@ end
 figure('name',figure_title)
 
 subplot(3,2,1)
-plot(t_nl,x_nl(:,1))
+stairs(t_nl,x_nl(:,1))
 hold on
-plot(t_nl,-x_nl(:,2))
-plot(t_lin,x_lin(:,1),'--')
-plot(t_lin,-x_lin(:,2),'--')
+stairs(t_nl,-x_nl(:,2))
+stairs(t_lin,x_lin(:,1),'--')
+stairs(t_lin,-x_lin(:,2),'--')
 legend('x non-linear','-z non-linear','x linear','-z linear')
 xlabel('Time (s)')
 ylabel('Position (m)')
@@ -34,11 +34,11 @@ grid on
 axis(pos_axis)
 
 subplot(3,2,2)
-plot(t_nl,x_nl(:,3))
+stairs(t_nl,x_nl(:,3))
 hold on
-plot(t_nl,-x_nl(:,4))
-plot(t_lin,x_lin(:,3),'--')
-plot(t_lin,-x_lin(:,4),'--')
+stairs(t_nl,-x_nl(:,4))
+stairs(t_lin,x_lin(:,3),'--')
+stairs(t_lin,-x_lin(:,4),'--')
 legend('u non-linear','-w non-linear','u linear','-w linear')
 xlabel('Time (s)')
 ylabel('Velocity (m/s)')
@@ -46,11 +46,11 @@ grid on
 axis(speed_axis)
 
 subplot(3,2,3)
-plot(t_nl,rad2deg(x_nl(:,5)))
+stairs(t_nl,rad2deg(x_nl(:,5)))
 hold on
-plot(t_nl,rad2deg(x_nl(:,6)))
-plot(t_lin,rad2deg(x_lin(:,5)),'--')
-plot(t_lin,rad2deg(x_lin(:,6)),'--')
+stairs(t_nl,rad2deg(x_nl(:,6)))
+stairs(t_lin,rad2deg(x_lin(:,5)),'--')
+stairs(t_lin,rad2deg(x_lin(:,6)),'--')
 legend('q non-linear','\theta non-linear','q linear','\theta linear')
 xlabel('Time (s)')
 ylabel('Rate and angle (deg/s)')
@@ -58,9 +58,9 @@ grid on
 axis(angle_axis)
 
 subplot(3,2,4)
-plot(t_nl,x_nl(:,7))
+stairs(t_nl,x_nl(:,7))
 hold on
-plot(t_lin,x_lin(:,7),'--')
+stairs(t_lin,x_lin(:,7),'--')
 legend('Inflow non-linear','Inflow linear')
 xlabel('Time (s)')
 ylabel('Inflow')
@@ -68,9 +68,9 @@ grid on
 axis(inflow_axis)
 
 subplot(3,1,3)
-plot(t_nl,u)
+stairs(t_nl,u)
 hold on
-plot(t_lin,u_lin,'--')
+stairs(t_lin,u_lin,'--')
 legend('Collective non-linear','Cyclic non-linear','Collective linear','Cyclic linear')
 xlabel('Time (s)')
 ylabel('Command (% of maximum)')

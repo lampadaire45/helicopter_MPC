@@ -19,9 +19,9 @@ end
 figure('name',figure_title)
 
 subplot(3,2,1)
-plot(t,x(:,1))
+stairs(t,x(:,1))
 hold on
-plot(t,-x(:,2))
+stairs(t,-x(:,2))
 legend('x','-z')
 xlabel('Time (s)')
 ylabel('Position (m)')
@@ -29,9 +29,9 @@ grid on
 axis(pos_axis)
 
 subplot(3,2,2)
-plot(t,x(:,3))
+stairs(t,x(:,3))
 hold on
-plot(t,-x(:,4))
+stairs(t,-x(:,4))
 legend('u','-w')
 xlabel('Time (s)')
 ylabel('Velocity (m/s)')
@@ -39,9 +39,9 @@ grid on
 axis(speed_axis)
 
 subplot(3,2,3)
-plot(t,rad2deg(x(:,5)))
+stairs(t,rad2deg(x(:,5)))
 hold on
-plot(t,rad2deg(x(:,6)))
+stairs(t,rad2deg(x(:,6)))
 legend('q','\theta')
 xlabel('Time (s)')
 ylabel('Rate and angle (deg/s)')
@@ -49,7 +49,7 @@ grid on
 axis(angle_axis)
 
 subplot(3,2,4)
-plot(t,x(:,7))
+stairs(t,x(:,7))
 legend('Inflow')
 xlabel('Time (s)')
 ylabel('Inflow')
@@ -57,7 +57,7 @@ grid on
 axis(inflow_axis)
 
 subplot(3,1,3)
-plot(t,u)
+stairs(t,u)
 legend('Collective','Cyclic')
 xlabel('Time (s)')
 ylabel('Command (% of maximum)')
