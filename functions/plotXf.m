@@ -39,7 +39,7 @@ if plot_data
     axis padded
     xlabel(states{entries(1)})
     ylabel(states{entries(2)})
-    terminal_set_text = sprintf('Terminal Set (Area %2.1f)',av);
+    terminal_set_text = sprintf('Terminal Set (Area %2.2f)',av);
     legend(terminal_set_text,'Limit of Terminal Set')
 end
 end
