@@ -1,7 +1,18 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Reference tracking and "feedforward" of MPC
+%
+%
+% By: Frédéric Larocque
+%
+% Last modified: 6/04/2022
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 %% Init
 clear all
 close all
 clc
+addpath('functions')
 
 set(0, 'DefaultLineLineWidth', 1.0);
 
@@ -10,7 +21,9 @@ set(0, 'DefaultLineLineWidth', 1.0);
 % x = [x z u w q theta lambda_i]
 init_hover_dynamics
 
-%% MPC reference
+fprintf('Initialized linear and non-linear system dynamics\n')
+
+%% Simple MPC reference tracking (changing setpoint with step)
 % x = [x   z   u   w   q   theta lambda_i]
 x_0 = [0   0   0   0   0   0     0     ]';
 
@@ -33,7 +46,7 @@ dim.Nref = 1;
 
 %Definition of quadratic cost function
 %           x = [    x    z    u     w    q    theta   lambda_i]
-weight.Q = 1E2*diag([1E0  1E0  1E0   1E0  1E0  1E0     1E-4]);
+weight.Q = 1E1*diag([1E0  1E0  1E0   1E0  1E0  1E0     1E-4]);
 %           u = [theta_0 theta_c]
 weight.R = diag([1       1]);
 weight.beta = 1;
@@ -64,7 +77,7 @@ x(:,1)=LTI.x0;
 % Reference
 r = [zeros(1,(T-1)/2), 0*ones(1,(T-1)/2+1);
      zeros(1,(T-1)/2), 1*ones(1,(T-1)/2+1)];
-LTI.last_yref = [rand(size(r,1),1)];
+LTI.last_yref = rand(size(r,1),1);
 
 % Receding horizon implementation
 for k=1:T
@@ -101,13 +114,17 @@ for k=1:T
 end
 
 % Plots
-plot_single(t,x(:,1:end-1)',u_rec','MPC constrained')
+plot_position_control(t,x(:,1:end-1)',u_rec','Following simple step reference change',r')
 
 %% Trajectory following (effect of change of Nref)
 
-Nref_list = [1,2,5,10,15,25];
+% List of Nref, or steps in advance that the MPC controller knows the
+% reference
+Nref_list = [1,5,10,25];
 x_Nref = {};
 u_Nref = {};
+
+fprintf('Starting Nref simulation\n')
 for m=1:length(Nref_list)
 dim.Nref = Nref_list(m);   %reference advance knowing
 
@@ -132,7 +149,7 @@ dim.N=25;       %horizon
 
 %Definition of quadratic cost function
 %           x = [    x    z    u     w    q    theta   lambda_i]
-weight.Q = 1E2*diag([1E0  1E0  1E0   1E0  1E0  1E0     1E-4]);
+weight.Q = 1E1*diag([1E0  1E0  1E0   1E0  1E0  1E0     1E-4]);
 %           u = [theta_0 theta_c]
 weight.R = diag([1       1]);
 weight.beta = 1;
@@ -168,7 +185,7 @@ LTI.last_yref = [rand(size(r,1),1)];
 
     % Receding horizon implementation
     for k=1:T
-        fprintf('Time is %2.2f \n',t(k))
+        fprintf('Time is %2.2f with Nref=%2.0f\n',t(k),dim.Nref)
     
         x_0=x(:,k);
         
@@ -182,12 +199,6 @@ LTI.last_yref = [rand(size(r,1),1)];
             LTI.yref = r(:,k:k+dim.Nref-1);
         end
     
-        % Calculate OTS
-    %     LTI.yref = r(:,k);
-    %     if any(LTI.last_yref ~= LTI.yref)
-    %         [xr,ur]=optimalss(LTI,dim,0);
-    %     end
-    %     LTI.last_yref = r(:,k);
         xr = [];
         ur = [];
         for i=1:dim.Nref
@@ -220,35 +231,38 @@ x_Nref{m} = x;
 u_Nref{m} = u_rec;
 
 end
+fprintf('Finished Nref simulation\n')
 
 % Plots
-figure
+figure('name','Effect of Nref')
 for m=1:length(Nref_list)
 
     subplot(2,1,1)
-    plot(t,-x_Nref{m}(2,1:end-1))
+    stairs(t,-x_Nref{m}(2,1:end-1))
     hold on
     subplot(2,1,2)
-    plot(t,u_Nref{m}(1,:))
+    stairs(t,u_Nref{m}(1,:))
     hold on
     
 
 end
 subplot(2,1,1)
-plot(t,-r(2,:),'--')
+stairs(t,-r(2,:),'--')
 xlabel('Time (s)')
 ylabel('Position (m)')
 grid on
+ylim padded
 legend([cellstr(num2str(Nref_list', 'Nref = %-d'));'Reference'])
 axis([0 10 -inf inf])
 subplot(2,1,2)
 xlabel('Time (s)')
 ylabel('Command (% of maximum)')
 grid on
+ylim padded
 legend(cellstr(num2str(Nref_list', 'Nref = %-d')))
 axis([0 10 -inf inf])
 
-%% Trajectory following Nref fixed
+%% Circular trajectory
 
 % x = [x   z   u   w   q   theta lambda_i]
 x_0 = [0   0   0   0   0   0     0     ]';
@@ -256,43 +270,10 @@ x_0 = [0   0   0   0   0   0     0     ]';
 % u = [theta_0 theta_c]
 u_0 = [0       0]';
 
-%Definition of the LTI system
-LTI.A=sysd.A; 
-LTI.B=sysd.B;
-LTI.C=[eye(2) zeros(2,5)];
-LTI.Cd=0;
 LTI.x0=x_0;
 
-%Definition of system dimension
-dim.nx=size(LTI.A,1);     %state  dimension
-dim.nu=size(LTI.B,2);     %input  dimension
-dim.ny=size(LTI.C,1);     %output dimension
-dim.N=25;       %horizon
-dim.Nref = 5;   %reference advance knowing
-
-%Definition of quadratic cost function
-%           x = [    x    z    u     w    q    theta   lambda_i]
-weight.Q = 1E2*diag([1E0  1E0  1E0   1E0  1E0  1E0     1E-4]);
-%           u = [theta_0 theta_c]
-weight.R = diag([1       1]);
-weight.beta = 1;
-
-[K,weight.P,e] = dlqr(LTI.A,LTI.B,weight.Q,weight.R,[]);
-K = -K;
-
-% Generation of prediction model 
-predmod=predmodgen(LTI,dim);            
-[H,h]=costgen_tracking(predmod,weight,dim);
-
-% Constraints
-%   u = [theta_0 theta_c] % percentage of max value
-u_lim = [0.25    1]';
-%   x = [x    z    u   w   q            theta          lambda_i]
-x_lim = [1000 1000 5   5   deg2rad(5)   deg2rad(15)    1000]';
-x_lim_vec = repmat(x_lim,[dim.N+1,1]);
-
 % Time vectors
-t_span = [0 15];
+t_span = [0 125];
 t = [t_span(1):sysd.Ts:t_span(2)]';
 
 T=length(t);                  %simulation horizon
@@ -301,60 +282,58 @@ u_rec=zeros(dim.nu,T);
 x(:,1)=LTI.x0;
 
 % Reference
-r = [zeros(1,5/sysd.Ts), 5*ones(1,T-(5/sysd.Ts));
-     zeros(1,1/sysd.Ts), 10*ones(1,T-(1/sysd.Ts))];
-LTI.last_yref = [rand(size(r,1),1)];
+r = [5*sin((t'./100).*2.*pi.*t'./20);
+     10*sin((t'./100).*2.*pi.*t'./20)];
 
+fprintf('Starting circular trajectory simulation\n')
 
     % Receding horizon implementation
-    for k=1:T
-        fprintf('Time is %2.2f \n',t(k))
+for k=1:T
+    fprintf('Time is %2.2f \n',t(k))
+
+    x_0=x(:,k);
     
-        x_0=x(:,k);
-        
-        % Select next Nref yref values. Fill if needed
-        if k>T-dim.Nref+1
-            LTI.yref = r(:,k:T);
-            for i=1:k-(T-dim.Nref+1)
-                LTI.yref(:,end+1) = LTI.yref(:,end);
-            end
-        else
-            LTI.yref = r(:,k:k+dim.Nref-1);
+    % Select next Nref yref values. Fill if needed
+    if k>T-dim.Nref+1
+        LTI.yref = r(:,k:T);
+        for i=1:k-(T-dim.Nref+1)
+            LTI.yref(:,end+1) = LTI.yref(:,end);
         end
-    
-        % Calculate OTS
-    %     LTI.yref = r(:,k);
-    %     if any(LTI.last_yref ~= LTI.yref)
-    %         [xr,ur]=optimalss(LTI,dim,0);
-    %     end
-    %     LTI.last_yref = r(:,k);
-        xr = [];
-        ur = [];
-        for i=1:dim.Nref
-            xr((i-1)*dim.nx+1:i*dim.nx,1) = [LTI.yref(:,i); zeros(5,1)];
-            ur((i-1)*dim.nu+1:i*dim.nu,1) = zeros(dim.nu,1);
-        end
-    
-        % Solve problem with CVX
-        cvx_begin quiet
-            variable uN(dim.nu*dim.N)
-            minimize(0.5*uN'*H*uN+(h*[x_0; xr/dim.Nref; ur])'*uN)
-            
-            % input constraints
-            uN <=  repmat(u_lim,[dim.N,1]);
-            uN >= -repmat(u_lim,[dim.N,1]);
-            % state constraints
-            predmod.S*uN <= -predmod.T*x_0 + x_lim_vec;
-            predmod.S*uN >= -predmod.T*x_0 - x_lim_vec; 
-    
-        cvx_end
-        % Select the first input only
-        u_rec(:,k)=uN(1:1*dim.nu);
-    
-        % Compute the state/output evolution
-        x(:,k+1)=LTI.A*x_0 + LTI.B*u_rec(:,k);
-        
+    else
+        LTI.yref = r(:,k:k+dim.Nref-1);
     end
 
+    xr = [];
+    ur = [];
+    for i=1:dim.Nref
+        xr((i-1)*dim.nx+1:i*dim.nx,1) = [LTI.yref(:,i); zeros(5,1)];
+        ur((i-1)*dim.nu+1:i*dim.nu,1) = zeros(dim.nu,1);
+    end
+
+    % Solve problem with CVX
+    cvx_begin quiet
+        variable uN(dim.nu*dim.N)
+        minimize(0.5*uN'*H*uN+(h*[x_0; xr/dim.Nref; ur])'*uN)
+        
+        % input constraints
+        uN <=  repmat(u_lim,[dim.N,1]);
+        uN >= -repmat(u_lim,[dim.N,1]);
+        % state constraints
+        predmod.S*uN <= -predmod.T*x_0 + x_lim_vec;
+        predmod.S*uN >= -predmod.T*x_0 - x_lim_vec; 
+
+    cvx_end
+    % Select the first input only
+    u_rec(:,k)=uN(1:1*dim.nu);
+
+    % Compute the state/output evolution
+    x(:,k+1)=LTI.A*x_0 + LTI.B*u_rec(:,k);
+    
+end
+
+fprintf('Finished circular trajectory calculation\n')
+
+save('traj.mat','r','x','u_rec')
+
 % Plots
-plot_position_angle_control(t,x(:,1:end-1)',u_rec','Trajectory following',r')
+plot_position_control(t,x(:,1:end-1)',u_rec','Trajectory following',r')

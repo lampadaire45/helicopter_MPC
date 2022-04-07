@@ -29,6 +29,7 @@ end
 xlabel('Time (s)')
 ylabel('Position (m)')
 grid on
+ylim padded
 
 subplot(2,1,2)
 stairs(t,u)
@@ -36,4 +37,5 @@ legend('Collective','Cyclic')
 xlabel('Time (s)')
 ylabel('Command (% of maximum)')
 grid on
+ylim padded
 end

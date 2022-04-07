@@ -11,6 +11,7 @@
 clear all
 close all
 clc
+addpath('functions')
 
 set(0, 'DefaultLineLineWidth', 1.0);
 

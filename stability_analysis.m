@@ -1,7 +1,18 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Stability analysis of MPC controller
+%
+%
+% By: Frédéric Larocque
+%
+% Last modified: 6/04/2022
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 %% Init
 clear all
 close all
 clc
+addpath('functions')
 
 set(0, 'DefaultLineLineWidth', 1.0);
 
@@ -10,7 +21,34 @@ set(0, 'DefaultLineLineWidth', 1.0);
 % x = [x z u w q theta lambda_i]
 init_hover_dynamics
 
-%% Stability
+fprintf('Initialized linear and non-linear system dynamics\n')
+
+%% Check controlability of system (continuous)
+
+if rank(ctrb(sysc.A,sysc.B)) == size(sysc.A,1)
+    fprintf("System is controllable (continuous)\n")
+else
+    fprintf("System not controllable (continuous)\n")
+end
+
+%% Check controlability of system (discrete)
+
+if rank(ctrb(sysd.A,sysd.B)) == size(sysd.A,1)
+    fprintf("System is controllable (discrete)\n")
+else
+    fprintf("System not controllable (discrete)\n")
+end
+
+%% Check stability of system (discrete)
+if any(eig(sysd.A)>1)
+    fprintf('System is unstable\n')
+elseif any(eig(sysd.A)==1)
+    fprintf('System marginally stable\n')
+else
+    fprintf('System is stable\n')
+end
+
+%% Stability LQR
 %Definition of the LTI system
 LTI.A=sysd.A; 
 LTI.B=sysd.B;
@@ -18,25 +56,37 @@ LTI.C=sysd.C;
 
 %Definition of quadratic cost function
 %           x = [    x    z    u     w    q    theta   lambda_i]
-weight.Q = 1E2*diag([1E0  1E0  1E0   1E0  1E0  1E0     1E-4]);
+weight.Q = 1E1*diag([1E0  1E0  1E0   1E0  1E0  1E0     1E-4]);
 %           u = [theta_0 theta_c]
 weight.R = diag([1       1]);
 
 [K,weight.P,e] = dlqr(sysd.A,sysd.B,weight.Q,weight.R,[]);
 K = -K;
 
-eig(LTI.A+LTI.B*K);
+if any(eig(LTI.A+LTI.B*K)>1)
+    fprintf('LQR System is unstable\n')
+elseif any(eig(LTI.A+LTI.B*K)==1)
+    fprintf('LQR System marginally stable\n')
+else
+    fprintf('LQR System is stable\n')
+end
+
 
 %   u = [theta_0 theta_c] % percentage of max value
 u_lim = [0.25    1]';
 %   x = [x    z    u   w   q            theta          lambda_i]
 x_lim = [1000 1000 5   5   deg2rad(5)   deg2rad(15)    1000]';
 
+%% Find xf
+fprintf('Finding Xf\n')
+
 [Xf, Z] = findXf(LTI.A, LTI.B, K, -x_lim, x_lim, -u_lim, u_lim);
 save('Xf.mat','Xf')
+
+fprintf('Found Xf \n')
 %% Plot Xf
 states = {'x (m)','z (m)','u (m/s)', 'w (m/s)','q (rad/s)', '\theta (rad)','\lambda_i'};
-range = [-5:0.1:5];
+range = [-5:0.01:5];
 
 entries = [1 2];
 [~,~,~] = plotXf(Xf,entries,range,states);
@@ -53,7 +103,8 @@ entries = [1 3];
 entries = [2 4];
 [~,~,~] = plotXf(Xf,entries,range,states);
 
-%% MPC Constrained
+%% Evolution of terminal and stage cost (constrained)
+fprintf('Calculating terminal and stage cost for MPC constrained case\n')
 
 % x = [x   z   u   w   q   theta lambda_i]
 x_0 = [1   1 0   0   0   0     0     ]';
@@ -107,27 +158,6 @@ for k=1:T
 
     x_0=x(:,k);
 
-%     A_opt = [kron(eye(dim.N),eye(dim.nu));
-%             kron(eye(dim.N),-eye(dim.nu));
-%             predmod.S;
-%             -predmod.S];
-%     b_opt = [repmat(u_lim,[dim.N,1]);
-%              repmat(u_lim,[dim.N,1]);
-%              -predmod.T*x_0 + x_lim_vec;
-%               predmod.T*x_0 + x_lim_vec];
-
-    
-%     % Solve the unconstrained optimization problem (with YALMIP)
-%     u_uncon = sdpvar(dim.nu*dim.N,1);                        %define optimization variable
-%     Constraint=[];                                           %define constraints
-%     Objective = 0.5*u_uncon'*H*u_uncon+(h*x_0)'*u_uncon;     %define cost function
-%     optimize(Constraint,Objective);                          %solve the problem
-%     u_uncon=value(u_uncon);                                  %assign the solution
-%     % Select the first input only
-%     u_rec(:,k)=u_uncon(1:1*dim.nu);
-    
-    %u_sec = quadprog(H,h*x_0,A_opt,b_opt);
-
     % Solve problem with CVX
     cvx_begin quiet
         variable uN(dim.nu*dim.N)
@@ -150,10 +180,7 @@ for k=1:T
     
 end
 
-% Plots
-plot_single(t,x(:,1:end-1)',u_rec','MPC constrained')
-
-%% Evolution of terminal and stage cost
+% Compute stage and terminal cost
 [Vf,stage_cost] = stability_costs(x(:,1:end-1),u_rec,weight);
 
 figure('name','Evolution of terminal and stage cost')
@@ -167,12 +194,14 @@ axis([0 5 -inf inf])
 %% Xn calculated for position and keeping all states to zero
 % Determined empirically
 
+fprintf('Started calculating Xn, might take some time... (approx. 5 hours)\n')
+
 beta_list = [1 3 10];
 
-x_list = linspace(-1.5,1.5,20);
-z_list = linspace(-20,20,20);
+x_list = linspace(-1.5,1.5,25);
+z_list = linspace(-20,20,25);
 
-xzInXn = zeros(length(x_list), length(z_list), length(beta_list));
+xzInXn = [];
 
 for k=1:length(beta_list)
     for i=1:length(x_list)
@@ -207,13 +236,16 @@ for k=1:length(beta_list)
             
             % Check if final value is in Xf
             if all(Xf.A*x(:,end)<=Xf.b)
-                xzInXn(i,j,k) = [x_list(i); z_list(j)];
+                xzInXn(:,end+1,k) = [x_list(i); z_list(j)];
             end
 
 
         end
     end
 end
+
+fprintf('Hurray, finished calculating Xn! Are you still there?\n')
+
 
 save('Xn.mat','xzInXn','x_list','z_list')
 
