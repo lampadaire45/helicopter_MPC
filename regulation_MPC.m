@@ -156,7 +156,7 @@ grid on
 
 %% MPC Outside Xf
 % x = [x    z   u   w   q   theta lambda_i]'
-x_0 = [2  0   0   0   0   0     0     ]'; % Initial condition inside Xf
+x_0 = [2  0   0   0   0   0     0     ]'; % Initial condition outside Xf
 LTI.x0 = x_0;
 x(:,1)=LTI.x0;
 
