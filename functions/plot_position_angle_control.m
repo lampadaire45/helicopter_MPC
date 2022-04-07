@@ -28,6 +28,7 @@ end
 xlabel('Time (s)')
 ylabel('Position (m)')
 grid on
+ylim padded
 
 subplot(3,1,2)
 stairs(t,rad2deg(x(:,5)))
@@ -37,6 +38,7 @@ legend('q','\theta')
 xlabel('Time (s)')
 ylabel('Rate and angle (deg/s)')
 grid on
+ylim padded
 
 subplot(3,1,3)
 stairs(t,u)
@@ -44,4 +46,5 @@ legend('Collective','Cyclic')
 xlabel('Time (s)')
 ylabel('Command (% of maximum)')
 grid on
+ylim padded
 end
