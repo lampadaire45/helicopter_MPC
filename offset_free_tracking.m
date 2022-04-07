@@ -254,7 +254,7 @@ r = [0*ones(1,5/sysd.Ts) 1*ones(1,5/sysd.Ts) 0*ones(1,1+10/sysd.Ts);  %x_ref
 LTI.last_yref = rand(size(r,1),1);
 
 % Disturbance
-d = [0*ones(1,1/sysd.Ts)  0.05*ones(1,4/sysd.Ts) 0.1*ones(1,1+15/sysd.Ts);  %u_d
+d = [0*ones(1,1/sysd.Ts)  0.1*ones(1,4/sysd.Ts) 0*ones(1,1+15/sysd.Ts);  %u_d
      0*ones(1,7/sysd.Ts)  0*-0.01*ones(1,3/sysd.Ts) 0*0.1*ones(1,1+10/sysd.Ts)];  %w_d
 
 fprintf('Starting tracking with disturbance simulation\n')

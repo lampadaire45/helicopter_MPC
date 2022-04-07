@@ -35,6 +35,7 @@ LTI.A=sysd.A;
 LTI.B=sysd.B;
 LTI.C=[eye(2) zeros(2,5)];
 LTI.Cd=0;
+LTI.Cdopt=0;
 LTI.x0=x_0;
 
 %Definition of system dimension
@@ -336,4 +337,4 @@ fprintf('Finished circular trajectory calculation\n')
 save('traj.mat','r','x','u_rec')
 
 % Plots
-plot_position_control(t,x(:,1:end-1)',u_rec','Trajectory following',r')
+plot_position_angle_control(t,x(:,1:end-1)',u_rec','Trajectory following',r')
