@@ -261,8 +261,8 @@ entries = [1 2];
 [Xf_pts,k_Xf,av_Xf] = plotXf(Xf,entries,range,states,false);
 
 figure('Name','Xn for x and z by setting all other states to 0')
-[k,av] = convhull(xzInXn(1,:),xzInXn(2,:));
-fill(xzInXn(1,k),xzInXn(2,k),'b','FaceAlpha',0.3)
+[k,av] = convhull(xzInXn(1,:,1),xzInXn(2,:,1));
+fill(xzInXn(1,k,1),xzInXn(2,k,1),'b','FaceAlpha',0.3)
 hold on
 fill(Xf_pts(1,k_Xf),Xf_pts(2,k_Xf),'g','FaceAlpha',0.3)
 axis padded
